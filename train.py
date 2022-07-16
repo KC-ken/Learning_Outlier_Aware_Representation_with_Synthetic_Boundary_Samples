@@ -37,11 +37,9 @@ def evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, n
         model=model,
         train_loader=in_train_loader,
         test_loader=in_test_loader,
-        norm_layer=norm_layer,
         OODs=OODs,
         adataset=args.dataset,
-        atraining_mode=args.training_mode,
-        anormalize=args.normalize
+        atraining_mode=args.training_mode
     )
 
     return prec1, fpr95, auroc, aupr
