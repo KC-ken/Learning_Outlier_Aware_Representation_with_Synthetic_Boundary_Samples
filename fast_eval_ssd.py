@@ -102,7 +102,7 @@ def fast_eval(
     model,
     train_loader,
     test_loader,
-    norm_layer,
+    # norm_layer,
     OODs,
     adataset="cifar10",
     # aood=["cifar100", "svhn", "texture", "blobs"],
@@ -112,11 +112,11 @@ def fast_eval(
     # aarch,
     # aclasses=10,
     aclusters=1,
-    adata_dir="./data/data_vvikash/fall20/SSD/datasets/",
-    adata_mode="base",   #choices=("org", "base", "ssl")
-    anormalize=False,
-    abatch_size=256,
-    asize=32,
+    # adata_dir="./data/data_vvikash/fall20/SSD/datasets/",
+    # adata_mode="base",   #choices=("org", "base", "ssl")
+    # anormalize=False,
+    # abatch_size=256,
+    # asize=32,
     # agpu="0",
     # aseed=12345
 ):

@@ -65,7 +65,7 @@ def main():
 
     # training
     parser.add_argument("--dataset", type=str, default="cifar10")
-    parser.add_argument("--data-dir", type=str, default="./data/data_vvikash/datasets/")
+    parser.add_argument("--data-dir", type=str, default="./datasets/")
     parser.add_argument("--normalize", action="store_true", default=False)
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--eval-batch-size", type=int, default=256)
