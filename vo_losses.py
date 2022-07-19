@@ -128,7 +128,8 @@ class VOConLoss(nn.Module):
         if self.vos_mode == "Cont":
             log_prob -= torch.log(exp_logits.sum(1) + self.lamb * n_exp_logits.sum(1))
         elif self.vos_mode == "DualCont":
-            log_prob += torch.log(1 / exp_logits.sum(1) + self.lamb / n_exp_logits.sum(1))
+            # log_prob += torch.log(1 / exp_logits.sum(1) + self.lamb / n_exp_logits.sum(1))
+            log_prob -= (torch.log(exp_logits.sum(1)) + self.lamb * torch.log(n_exp_logits.sum(1))) #dual_out
         else:
             raise ValueError("Unknown vos_mode: {}".format(self.vos_mode))
         # print("\n\nafter:", log_prob.size())
