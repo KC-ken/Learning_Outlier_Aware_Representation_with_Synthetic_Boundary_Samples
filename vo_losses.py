@@ -9,6 +9,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+from utils import synthesize_OOD
+
 
 class VOConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
@@ -78,6 +80,7 @@ class VOConLoss(nn.Module):
 
         log_prob = (mask * logits).sum(1)
 
+        """
         #------------------ outlier projection-----------------------------
         # compute mean and covariance
         # contrast_feature: [bs*2, feature_dim], mean: [feature_dim], cov: [feature_dim, feature_dim]
@@ -110,6 +113,9 @@ class VOConLoss(nn.Module):
 
         # project contrast_feature onto near OOD region
         negative_feature = project_scalar.unsqueeze(1) * dev + mu.unsqueeze(0)
+        """
+
+        negative_feature = synthesize_OOD(contrast_feature.detach(), near_region=self.near_OOD)
 
         # compute negative logits
         negative_dot_contrast = torch.div(
