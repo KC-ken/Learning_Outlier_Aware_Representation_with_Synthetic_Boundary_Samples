@@ -89,6 +89,7 @@ def main():
 
     parser.add_argument("--virtual-outlier", action="store_true", default=False)
     parser.add_argument("--lamb", type=float, default=1)
+    parser.add_argument("--near-region", type=float, default=0.1)
     parser.add_argument("--default-warmup", action="store_true", default=False)
     parser.add_argument(
         "--vos-mode", type=str, default="Cont", choices=["Cont", "DualCont", "minM"]
@@ -203,7 +204,7 @@ def main():
     if args.virtual_outlier:
         print(f"@@@@using virtual outlier sampling with lambda {args.lamb}....")
         print(f"@@@@vos mode: {args.vos_mode}...")
-        criterion = VOConLoss(temperature=args.temperature, lamb=args.lamb, vos_mode=args.vos_mode, resample=args.resample).cuda()
+        criterion = VOConLoss(temperature=args.temperature, lamb=args.lamb, vos_mode=args.vos_mode).cuda()
     else:
         criterion = (
             SupConLoss(temperature=args.temperature).cuda()
@@ -258,6 +259,10 @@ def main():
                 warmup_lr_scheduler,
                 epoch,
                 args,
+                args.virtual_outlier,
+                args.resample,
+                args.near_region,
+
             )
 
             ## eval
@@ -281,7 +286,7 @@ def main():
 
     for epoch in range(0, args.epochs):
         trainer(
-            model, device, train_loader, criterion, optimizer, lr_scheduler, epoch, args
+            model, device, train_loader, criterion, optimizer, lr_scheduler, epoch, args, args.virtual_outlier, args.resample, args.near_region
         )
 
         prec1, fpr95, auroc, aupr = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)

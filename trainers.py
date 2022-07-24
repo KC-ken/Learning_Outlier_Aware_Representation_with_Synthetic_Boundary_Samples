@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import time
-from utils import AverageMeter, ProgressMeter, accuracy
+from utils import AverageMeter, ProgressMeter, accuracy, synthesize_OOD
 
 
 def supervised(
@@ -84,6 +85,9 @@ def ssl(
     lr_scheduler=None,
     epoch=0,
     args=None,
+    sbs=False,
+    resample=False,
+    near_OOD=0.1,
 ):
     print(
         " ->->->->->->->->->-> One epoch with self-supervised training <-<-<-<-<-<-<-<-<-<-"
@@ -121,13 +125,39 @@ def ssl(
                 )
             )
 
-        features = model(images)
+        encoded_feature = model.encoder(images)
+        # synthesize boundary samples
+        if sbs:
+            with torch.no_grad():
+                negative_features = synthesize_OOD(
+                    F.normalize(
+                        encoded_feature.detach(),
+                        dim=-1
+                    ),
+                    near_OOD,
+                    resample,
+                )
+            
+                negative_features = F.normalize(
+                    model.head(negative_features),
+                    dim=-1
+                )
+            # print("negative_features size:", encoded_feature.size())
+                    
+        else:
+            negative_features = None
+
+        features = F.normalize(
+            model.head(encoded_feature),
+            dim=-1
+        )
+            
         f1, f2 = torch.split(features, [bsz, bsz], dim=0)
         features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
         if args.training_mode == "SupCon":
-            loss = criterion(features, target)
+            loss = criterion(features, target, negative_features=negative_features)
         elif args.training_mode == "SimCLR":
-            loss = criterion(features)
+            loss = criterion(features, negative_features=negative_features)
         else:
             raise ValueError("training mode not supported")
 

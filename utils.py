@@ -351,9 +351,9 @@ def synthesize_OOD(feature, near_region, resample=False):
 
     # sample z and compute the Mahalanobis distance of z
     if resample:
-        sampled_z = np.random.multivariate_normal(mu, cov, con_f.shape[0])
+        sampled_z = np.random.multivariate_normal(np.squeeze(mu), cov, con_f.shape[0])
         deviation = sampled_z - mu
-        M_dis = np.sum(
+        M_dis_z = np.sum(
             deviation * (
                 np.linalg.pinv(cov).dot(
                     deviation.T
@@ -372,6 +372,7 @@ def synthesize_OOD(feature, near_region, resample=False):
 
     # project contrast_feature onto near OOD region
     negative_feature = np.expand_dims(project_scalar, 1) * deviation + mu
+    # negative_feature /= np.linalg.norm(negative_feature, axis=-1, keepdims=True) + 1e-10
     negative_feature = torch.from_numpy(negative_feature).float().to(device)
 
     return negative_feature
