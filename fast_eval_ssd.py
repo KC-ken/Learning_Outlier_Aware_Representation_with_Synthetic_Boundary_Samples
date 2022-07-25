@@ -81,9 +81,9 @@ def get_eval_results(ftrain, ftest, food, labelstrain, aclusters, atraining_mode
     None.
     """
     # standardize data
-    ftrain /= np.linalg.norm(ftrain, axis=-1, keepdims=True) + 1e-10
-    ftest /= np.linalg.norm(ftest, axis=-1, keepdims=True) + 1e-10
-    food /= np.linalg.norm(food, axis=-1, keepdims=True) + 1e-10
+    # ftrain /= np.linalg.norm(ftrain, axis=-1, keepdims=True) + 1e-10
+    # ftest /= np.linalg.norm(ftest, axis=-1, keepdims=True) + 1e-10
+    # food /= np.linalg.norm(food, axis=-1, keepdims=True) + 1e-10
 
     m, s = np.mean(ftrain, axis=0, keepdims=True), np.std(ftrain, axis=0, keepdims=True)
 
