@@ -259,10 +259,9 @@ def main():
                 warmup_lr_scheduler,
                 epoch,
                 args,
-                args.virtual_outlier,
+                args.virtual_outlier & ~args.default_warmup,
                 args.resample,
                 args.near_region,
-
             )
 
             ## eval
