@@ -92,7 +92,7 @@ def main():
     parser.add_argument("--near-region", type=float, default=0.1)
     parser.add_argument("--default-warmup", action="store_true", default=False)
     parser.add_argument(
-        "--vos-mode", type=str, default="Cont", choices=["Cont", "DualCont", "minM"]
+        "--vos-mode", type=str, default="Cont", choices=["Cont", "DualCont", "DualOut"]
     )
     parser.add_argument("--resample", action="store_true", default=False)
 

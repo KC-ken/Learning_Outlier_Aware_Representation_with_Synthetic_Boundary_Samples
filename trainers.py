@@ -130,11 +130,11 @@ def ssl(
         if sbs:
             with torch.no_grad():
                 negative_features = synthesize_OOD(
-                    # F.normalize(
-                    #     encoded_feature.detach(),
-                    #     dim=-1
-                    # ),
-                    encoded_feature.detach(),
+                    F.normalize(
+                        encoded_feature.detach(),
+                        dim=-1
+                    ),
+                    # encoded_feature.detach(),
                     near_OOD,
                     resample,
                 )
