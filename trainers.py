@@ -88,6 +88,7 @@ def ssl(
     sbs=False,
     resample=False,
     near_OOD=0.1,
+    normalize_ID=False,
 ):
     print(
         " ->->->->->->->->->-> One epoch with self-supervised training <-<-<-<-<-<-<-<-<-<-"
@@ -133,8 +134,7 @@ def ssl(
                     F.normalize(
                         encoded_feature.detach(),
                         dim=-1
-                    ),
-                    # encoded_feature.detach(),
+                    ) if normalize_ID else encoded_feature.detach(),
                     near_OOD,
                     resample,
                 )
