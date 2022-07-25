@@ -79,6 +79,7 @@ class VOConLoss(nn.Module):
         logits = anchor_dot_contrast - logits_max.detach()
 
         log_prob = (mask * logits).sum(1)
+        exp_logits = (torch.exp(logits) * logits_mask).sum(1)
 
         if negative_features is not None:
             # compute negative logits
@@ -91,22 +92,25 @@ class VOConLoss(nn.Module):
             n_logits = negative_dot_contrast - n_logits_max.detach()
 
             n_exp_logits = (torch.exp(n_logits) * logits_mask).sum(1)
-        else:
-            n_exp_logits = 0
-        #------------------------------------------------------------------
+            # else:
+            #     n_exp_logits = 0
+            #------------------------------------------------------------------
 
-        # compute log_prob = - L_cont
-        exp_logits = (torch.exp(logits) * logits_mask).sum(1)
-
-        if self.vos_mode == "Cont":
-            log_prob -= torch.log(exp_logits + self.lamb * n_exp_logits)
-        elif self.vos_mode == "DualCont":
-            log_prob += torch.log(1 / exp_logits + self.lamb / n_exp_logits) #dual
-        elif self.vos_mode == "DualOut":
-            log_prob -= (torch.log(exp_logits) + self.lamb * torch.log(n_exp_logits)) #dual_out
-        else:
-            raise ValueError("Unknown vos_mode: {}".format(self.vos_mode))
+            # compute log_prob = - L_cont
+            # exp_logits = (torch.exp(logits) * logits_mask).sum(1)
+        
+            if self.vos_mode == "Cont":
+                log_prob -= torch.log(exp_logits + self.lamb * n_exp_logits)
+            elif self.vos_mode == "DualCont":
+                log_prob += torch.log(1 / exp_logits + self.lamb / n_exp_logits) #dual
+            elif self.vos_mode == "DualOut":
+                log_prob -= (torch.log(exp_logits) + self.lamb * torch.log(n_exp_logits)) #dual_out
+            else:
+                raise ValueError("Unknown vos_mode: {}".format(self.vos_mode))
         # print("\n\nafter:", log_prob.size())
+        else:
+            log_prob -= torch.log(exp_logits)
+
         # loss
         loss = -(self.temperature / self.base_temperature) * log_prob
         loss = loss.view(anchor_count, batch_size).mean()
