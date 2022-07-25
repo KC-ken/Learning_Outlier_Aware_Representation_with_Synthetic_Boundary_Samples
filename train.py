@@ -214,11 +214,12 @@ def main():
 
     if args.default_warmup:
         print("@@@@default warm up....")
-        criterion_warm = (
-            SupConLoss(temperature=args.temperature).cuda()
-            if args.training_mode in ["SimCLR", "SupCon"]
-            else nn.CrossEntropyLoss().cuda()
-        )
+        # criterion_warm = (
+        #     SupConLoss(temperature=args.temperature).cuda()
+        #     if args.training_mode in ["SimCLR", "SupCon"]
+        #     else nn.CrossEntropyLoss().cuda()
+        # )
+        criterion_warm = criterion
     else:
         criterion_warm = criterion
 
