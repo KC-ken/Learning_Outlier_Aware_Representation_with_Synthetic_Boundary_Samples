@@ -88,10 +88,13 @@ class VOConLoss(nn.Module):
             )
 
             # for numerical stability
-            n_logits_max, _ = torch.max(negative_dot_contrast, dim=1, keepdim=True)
-            n_logits = negative_dot_contrast - n_logits_max.detach()
-
-            n_exp_logits = (torch.exp(n_logits) * logits_mask).sum(1)
+            # n_logits_max, _ = torch.max(negative_dot_contrast, dim=1, keepdim=True)
+            n_logits = negative_dot_contrast - logits_max.detach()
+            
+            if self.vos_mode == "ContOne":
+                n_exp_logits = (torch.exp(n_logits) * (1 - logits_mask)).sum(1)
+            else:
+                n_exp_logits = torch.exp(n_logits).sum(1)
             # else:
             #     n_exp_logits = 0
             #------------------------------------------------------------------
@@ -99,7 +102,7 @@ class VOConLoss(nn.Module):
             # compute log_prob = - L_cont
             # exp_logits = (torch.exp(logits) * logits_mask).sum(1)
         
-            if self.vos_mode == "Cont":
+            if self.vos_mode == "Cont" or self.vos_mode == "ContOne":
                 log_prob -= torch.log(exp_logits + self.lamb * n_exp_logits)
             elif self.vos_mode == "DualCont":
                 log_prob += torch.log(1 / exp_logits + self.lamb / n_exp_logits) #dual
