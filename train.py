@@ -96,6 +96,7 @@ def main():
     )
     parser.add_argument("--resample", action="store_true", default=False)
     parser.add_argument("--normalize-ID", action="store_true", default=False)
+    parser.add_argument("--grad-head", action="store_true", default=False)
 
     args = parser.parse_args()
     device = "cuda:0"
@@ -268,6 +269,7 @@ def main():
                 args.resample,
                 args.near_region,
                 args.normalize_ID,
+                args.grad_head,
             )
 
             ## eval
@@ -291,7 +293,7 @@ def main():
 
     for epoch in range(0, args.epochs):
         trainer(
-            model, device, train_loader, criterion, optimizer, lr_scheduler, epoch, args, args.virtual_outlier, args.resample, args.near_region, args.normalize_ID
+            model, device, train_loader, criterion, optimizer, lr_scheduler, epoch, args, args.virtual_outlier, args.resample, args.near_region, args.normalize_ID, args.grad_head
         )
 
         prec1, fpr95, auroc, aupr = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)

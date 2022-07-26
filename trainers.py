@@ -89,6 +89,7 @@ def ssl(
     resample=False,
     near_OOD=0.1,
     normalize_ID=False,
+    grad_head=False,
 ):
     print(
         " ->->->->->->->->->-> One epoch with self-supervised training <-<-<-<-<-<-<-<-<-<-"
@@ -138,11 +139,18 @@ def ssl(
                     near_OOD,
                     resample,
                 )
-            
+                
+                if not grad_head:
+                    negative_features = F.normalize(
+                        model.head(negative_features),
+                        dim=-1
+                    )
+
+            if grad_head:
                 negative_features = F.normalize(
                     model.head(negative_features),
                     dim=-1
-                )
+                )   
             # print("negative_features size:", encoded_feature.size())
                     
         else:
