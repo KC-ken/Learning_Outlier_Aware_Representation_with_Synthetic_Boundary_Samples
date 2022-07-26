@@ -207,11 +207,14 @@ def main():
         print(f"@@@@vos mode: {args.vos_mode}...")
         criterion = VOConLoss(temperature=args.temperature, lamb=args.lamb, vos_mode=args.vos_mode).cuda()
     else:
-        criterion = (
-            SupConLoss(temperature=args.temperature).cuda()
-            if args.training_mode in ["SimCLR", "SupCon"]
-            else nn.CrossEntropyLoss().cuda()
-        )
+        # TODO rewrite this
+        print(f"@@@using normal {args.training_mode}")
+        criterion = VOConLoss(temperature=args.temperature).cuda()
+        # criterion = (
+        #     SupConLoss(temperature=args.temperature).cuda()
+        #     if args.training_mode in ["SimCLR", "SupCon"]
+        #     else nn.CrossEntropyLoss().cuda()
+        # )
 
     if args.default_warmup:
         print("@@@@default warm up....")
