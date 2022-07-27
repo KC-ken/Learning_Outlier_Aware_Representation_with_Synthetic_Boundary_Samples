@@ -258,6 +258,8 @@ def get_scores_one_cluster(ftrain, ftest, food, shrunkcov=False):
         ).T,
         axis=-1,
     )
+    # dtest = - np.sum(ftest @ ftrain.T, axis=0)
+    # dood = - np.sum(food @ ftrain.T, axis=0)
 
     return dtest, dood
 

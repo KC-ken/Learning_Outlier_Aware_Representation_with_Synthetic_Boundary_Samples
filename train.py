@@ -76,9 +76,9 @@ def main():
     parser.add_argument("--warmup_epochs", type=int, default=10)
 
     # ssl
-    parser.add_argument(
-        "--method", type=str, default="SupCon", choices=["SupCon", "SimCLR", "SupCE"]
-    )
+    # parser.add_argument(
+    #     "--method", type=str, default="SupCon", choices=["SupCon", "SimCLR", "SupCE"]
+    # )
     parser.add_argument("--temperature", type=float, default=0.5)
 
     # misc
@@ -141,7 +141,7 @@ def main():
     wandb.init(project="SSD-training", name=args.exp_name)
     wandb.config = {
         "arch": args.arch,
-        "training_method": args.method,
+        "training_mode": args.training_mode,
         "dataset": args.dataset,
         "learning_rate": args.lr,
         "epochs": args.epochs,
