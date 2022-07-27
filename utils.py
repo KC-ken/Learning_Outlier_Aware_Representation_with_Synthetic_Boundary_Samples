@@ -77,6 +77,24 @@ class ProgressMeter(object):
         fmt = "{:" + str(num_digits) + "d}"
         return "[" + fmt + "/" + fmt.format(num_batches) + "]"
 
+class EWM(object):
+    # exponentially weighted moving mean and covariance
+    def __init__(self, alpha=0.5):
+        self.mean = None
+        self.cov = None
+        self.alpha = alpha
+
+    def update_mean(self, mean_t):
+        if self.mean is None:
+            self.mean = mean_t
+
+        self.mean = self.alpha * mean_t + (1 - self.alpha) * self.mean
+    
+    def update_cov(self, cov_t):
+        if self.cov is None:
+            self.cov = cov_t
+
+        self.cov = self.alpha * cov_t + (1 - self.alpha) * self.cov
 
 #### evaluation ####
 def accuracy(output, target, topk=(1,)):
@@ -325,7 +343,7 @@ def sliceloader(dataloader, norm_layer, k=1, copies=1, batch_size=128, size=32):
     )
     return loader_k, loader_not_k
 
-def synthesize_OOD(feature, near_region, resample=False):
+def synthesize_OOD(ewm, feature, near_region, resample=False):
     device = torch.device("cuda") if feature.is_cuda else torch.device("cpu")
 
     #------------------ outlier projection-----------------------------
@@ -333,8 +351,14 @@ def synthesize_OOD(feature, near_region, resample=False):
     # contrast_feature: [bs*2, feature_dim], mean: [feature_dim], cov: [feature_dim, feature_dim]
     con_f = feature.detach().cpu().numpy()
     mu = np.mean(con_f, axis=0, keepdims=True)
+    ewm.update_mean(mu)
+    mu = ewm.mean
+
     cov = np.cov(con_f.T, bias=True)
-    
+    # TODO compute cov with ewm mean
+    ewm.update_cov(cov)
+    cov = ewm.cov
+
     # find maximum Mahalanobis distance
     deviation = con_f - mu
     M_dis = np.sum(

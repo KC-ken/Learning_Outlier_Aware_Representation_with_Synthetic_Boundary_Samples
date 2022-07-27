@@ -90,6 +90,7 @@ def ssl(
     near_OOD=0.1,
     normalize_ID=False,
     grad_head=False,
+    ewm=None,
 ):
     print(
         " ->->->->->->->->->-> One epoch with self-supervised training <-<-<-<-<-<-<-<-<-<-"
@@ -132,6 +133,7 @@ def ssl(
         if sbs:
             with torch.no_grad():
                 negative_features = synthesize_OOD(
+                    ewm,
                     F.normalize(
                         encoded_feature.detach(),
                         dim=-1

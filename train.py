@@ -90,6 +90,7 @@ def main():
     parser.add_argument("--virtual-outlier", action="store_true", default=False)
     parser.add_argument("--lamb", type=float, default=1)
     parser.add_argument("--near-region", type=float, default=0.1)
+    parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--default-warmup", action="store_true", default=False)
     parser.add_argument(
         "--vos-mode", type=str, default="Cont", choices=["Cont", "DualCont", "DualOut", "ContOne"]
@@ -243,6 +244,8 @@ def main():
     )
     val = knn if args.training_mode in ["SimCLR", "SupCon"] else baseeval
     
+    ewm = EWM(args.alpha)
+    
     num_steps = 0
 
     # warmup
@@ -270,6 +273,7 @@ def main():
                 args.near_region,
                 args.normalize_ID,
                 args.grad_head,
+                ewm,
             )
 
             ## eval
@@ -293,7 +297,7 @@ def main():
 
     for epoch in range(0, args.epochs):
         trainer(
-            model, device, train_loader, criterion, optimizer, lr_scheduler, epoch, args, args.virtual_outlier, args.resample, args.near_region, args.normalize_ID, args.grad_head
+            model, device, train_loader, criterion, optimizer, lr_scheduler, epoch, args, args.virtual_outlier, args.resample, args.near_region, args.normalize_ID, args.grad_head, ewm
         )
 
         prec1, fpr95, auroc, aupr = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
