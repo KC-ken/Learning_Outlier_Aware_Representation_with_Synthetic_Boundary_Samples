@@ -132,7 +132,7 @@ def ssl(
         # synthesize boundary samples
         if sbs:
             with torch.no_grad():
-                negative_features = synthesize_OOD(
+                negative_feature = synthesize_OOD(
                     ewm,
                     F.normalize(
                         encoded_feature.detach(),
@@ -144,13 +144,13 @@ def ssl(
                 
                 if not grad_head:
                     negative_features = F.normalize(
-                        model.head(negative_features),
+                        model.head(negative_feature),
                         dim=-1
                     )
 
             if grad_head:
                 negative_features = F.normalize(
-                    model.head(negative_features),
+                    model.head(negative_feature),
                     dim=-1
                 )   
             # print("negative_features size:", encoded_feature.size())
