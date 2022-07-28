@@ -383,8 +383,8 @@ def synthesize_OOD(ewm, feature, near_region, resample=False):
     # contrast_feature: [bs*2, feature_dim], mean: [feature_dim], cov: [feature_dim, feature_dim]
     con_f = feature.detach().cpu().numpy()
     #@@@@@@@@@@@@@@@@@@@@@@test
-    norm_f = np.linalg.norm(con_f, axis=-1, keepdims=True)
-    con_f /= norm_f + 1e-10
+    # norm_f = np.linalg.norm(con_f, axis=-1, keepdims=True)
+    # con_f /= norm_f + 1e-10
     #@@@@@@@@@@@@@@@@@@@@@@test
     mu = np.mean(con_f, axis=0, keepdims=True)
     ewm.update_mean(mu)
@@ -433,8 +433,8 @@ def synthesize_OOD(ewm, feature, near_region, resample=False):
     # project contrast_feature onto near OOD region
     negative_feature = np.expand_dims(project_scalar, 1) * deviation + mu
     #@@@@@@@@@@@@@@@@@@@@@@test
-    negative_feature /= np.linalg.norm(negative_feature, axis=-1, keepdims=True) + 1e-10
-    negative_feature *= norm_f
+    # negative_feature /= np.linalg.norm(negative_feature, axis=-1, keepdims=True) + 1e-10
+    # negative_feature *= norm_f
     #@@@@@@@@@@@@@@@@@@@@@@test
     negative_feature = torch.from_numpy(negative_feature).float().to(device)
 
