@@ -186,7 +186,8 @@ def main():
     )
 
     # ood dataset for fast_eval
-    eval_ds = ["cifar10", "cifar100", "svhn", "texture", "blobs"]
+    # eval_ds = ["cifar10", "cifar100", "svhn", "texture", "blobs"]
+    eval_ds = ["cifar10", "cifar100"]
     eval_ds.remove(args.dataset)
 
     # OOD loader
