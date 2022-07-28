@@ -230,8 +230,36 @@ def get_pr_sklearn(xin, xood):
 def get_fpr(xin, xood):
     return np.sum(xood < np.percentile(xin, 95)) / len(xood)
 
+def norm_feats(feat):
+    feat /= np.linalg.norm(feat, axis=-1, keepdims=True) + 1e-10
+    return feat
 
 def get_scores_one_cluster(ftrain, ftest, food, shrunkcov=False):
+    # ntest = np.linalg.norm(_ftest, axis=-1)
+    # ndood = np.linalg.norm(_food, axis=-1)
+    # m, s = np.mean(_ftrain, axis=0, keepdims=True), np.std(_ftrain, axis=0, keepdims=True)
+
+    # ftrain = (_ftrain - m) / (s + 1e-10)
+    # ftest = (_ftest - m) / (s + 1e-10)
+    # food = (_food - m) / (s + 1e-10)
+
+    # _dtest = np.max( np.matmul(norm_feats(ftest), norm_feats(ftrain).T), axis=1)# * np.linalg.norm(ftest)
+    # _dood = np.max( np.matmul(norm_feats(food), norm_feats(ftrain).T), axis=1)# * np.linalg.norm(food)
+    # print("t sim range", f"{np.min(_dtest)}~{np.max(_dtest)}, mean:{np.mean(_dtest)}")
+    # print("o sim range", f"{np.min(_dood)}~{np.max(_dood)}, mean:{np.mean(_dood)}")
+    # print("t norm range", f"{np.min(ntest)}~{np.max(ntest)}, mean:{np.mean(ntest)}")
+    # print("o norm range", f"{np.min(ndood)}~{np.max(ndood)}, mean:{np.mean(ndood)}")
+
+    # _ftrain /= np.linalg.norm(_ftrain, axis=-1, keepdims=True) + 1e-10
+    # _ftest /= np.linalg.norm(_ftest, axis=-1, keepdims=True) + 1e-10
+    # _food /= np.linalg.norm(_food, axis=-1, keepdims=True) + 1e-10
+
+    # m, s = np.mean(_ftrain, axis=0, keepdims=True), np.std(_ftrain, axis=0, keepdims=True)
+
+    # ftrain = (_ftrain - m) / (s + 1e-10)
+    # ftest = (_ftest - m) / (s + 1e-10)
+    # food = (_food - m) / (s + 1e-10)
+
     if shrunkcov:
         print("Using ledoit-wolf covariance estimator.")
         cov = lambda x: ledoit_wolf(x)[0]
@@ -258,8 +286,10 @@ def get_scores_one_cluster(ftrain, ftest, food, shrunkcov=False):
         ).T,
         axis=-1,
     )
-    # dtest = - np.sum(ftest @ ftrain.T, axis=0)
-    # dood = - np.sum(food @ ftrain.T, axis=0)
+    # print("t M range", f"{np.min(dtest)}~{np.max(dtest)}, mean:{np.mean(dtest)}")
+    # print("o M range", f"{np.min(dood)}~{np.max(dood)}, mean:{np.mean(dood)}")
+    # dtest /=  (ntest/-np.log(_dtest))
+    # dood /= (ndood/-np.log(_dood))
 
     return dtest, dood
 
@@ -352,6 +382,10 @@ def synthesize_OOD(ewm, feature, near_region, resample=False):
     # compute mean and covariance
     # contrast_feature: [bs*2, feature_dim], mean: [feature_dim], cov: [feature_dim, feature_dim]
     con_f = feature.detach().cpu().numpy()
+    #@@@@@@@@@@@@@@@@@@@@@@test
+    norm_f = np.linalg.norm(con_f, axis=-1, keepdims=True)
+    con_f /= norm_f + 1e-10
+    #@@@@@@@@@@@@@@@@@@@@@@test
     mu = np.mean(con_f, axis=0, keepdims=True)
     ewm.update_mean(mu)
     mu = ewm.mean
@@ -398,7 +432,10 @@ def synthesize_OOD(ewm, feature, near_region, resample=False):
 
     # project contrast_feature onto near OOD region
     negative_feature = np.expand_dims(project_scalar, 1) * deviation + mu
-    # negative_feature /= np.linalg.norm(negative_feature, axis=-1, keepdims=True) + 1e-10
+    #@@@@@@@@@@@@@@@@@@@@@@test
+    negative_feature /= np.linalg.norm(negative_feature, axis=-1, keepdims=True) + 1e-10
+    negative_feature *= norm_f
+    #@@@@@@@@@@@@@@@@@@@@@@test
     negative_feature = torch.from_numpy(negative_feature).float().to(device)
 
     return negative_feature
