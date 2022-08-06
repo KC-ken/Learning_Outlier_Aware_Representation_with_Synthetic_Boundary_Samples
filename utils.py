@@ -383,7 +383,8 @@ def sliceloader(dataloader, norm_layer, k=1, copies=1, batch_size=128, size=32):
     )
     return loader_k, loader_not_k
 
-def synthesize_OOD(ewm, feature, near_region, resample):
+
+def synthesize_OOD(ewm, feature, near_region, delta, resample):
     device = torch.device("cuda") if feature.is_cuda else torch.device("cpu")
 
     #------------------ outlier projection-----------------------------
@@ -415,7 +416,8 @@ def synthesize_OOD(ewm, feature, near_region, resample):
     )
 
     # Defined Near OOD region (todo set good nearood)
-    nearood = M_dis.max() * near_region
+    nearood_low = M_dis.max() * (1 + delta)
+    nearood_high = M_dis.max() * (1 + delta + near_region)
 
     # sample z and compute the Mahalanobis distance of z
     if resample:
@@ -436,7 +438,7 @@ def synthesize_OOD(ewm, feature, near_region, resample):
         M_dis_z = M_dis
 
     # compute project scaler (c)
-    project_scalar = np.sqrt((M_dis.max() +  np.random.uniform(0, nearood, M_dis.shape)) / M_dis_z)
+    project_scalar = np.sqrt((np.random.uniform(nearood_low, nearood_high, M_dis.shape)) / M_dis_z)
 
     # project contrast_feature onto near OOD region
     negative_feature = np.expand_dims(project_scalar, 1) * deviation + mu

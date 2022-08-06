@@ -90,6 +90,7 @@ def main():
     parser.add_argument("--virtual-outlier", action="store_true", default=False)
     parser.add_argument("--lamb", type=float, default=1)
     parser.add_argument("--near-region", type=float, default=0.1)
+    parser.add_argument("--delta", type=float, default=0)
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--default-warmup", action="store_true", default=False)
     parser.add_argument(

@@ -140,6 +140,7 @@ def ssl(
                         dim=-1
                     ) if args.normalize_ID else encoded_feature.detach(),
                     args.near_region,
+                    args.delta,
                     args.resample,
                 )
                 
