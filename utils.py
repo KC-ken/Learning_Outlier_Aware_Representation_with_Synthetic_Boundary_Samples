@@ -294,6 +294,14 @@ def get_scores_one_cluster(ftrain, ftest, food, shrunkcov=False):
     return dtest, dood
 
 
+def compute_dis(features_train):
+
+    dis = np.linalg.norm(features_train - np.mean(features_train, axis=0, keepdims=True), axis=-1)
+    # print("dis size: ", dis.shape)
+
+    return np.mean(dis), np.max(dis)
+
+
 #### Dataloaders ####
 def readloader(dataloader):
     images = []
@@ -375,7 +383,7 @@ def sliceloader(dataloader, norm_layer, k=1, copies=1, batch_size=128, size=32):
     )
     return loader_k, loader_not_k
 
-def synthesize_OOD(ewm, feature, near_region, resample=False):
+def synthesize_OOD(ewm, feature, near_region, resample):
     device = torch.device("cuda") if feature.is_cuda else torch.device("cpu")
 
     #------------------ outlier projection-----------------------------

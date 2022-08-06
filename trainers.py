@@ -85,11 +85,12 @@ def ssl(
     lr_scheduler=None,
     epoch=0,
     args=None,
-    sbs=False,
-    resample=False,
-    near_OOD=0.1,
-    normalize_ID=False,
-    grad_head=False,
+    warmup=False,
+    # sbs=False,
+    # resample=False,
+    # near_OOD=0.1,
+    # normalize_ID=False,
+    # grad_head=False,
     ewm=None,
 ):
     print(
@@ -130,25 +131,25 @@ def ssl(
 
         encoded_feature = model.encoder(images)
         # synthesize boundary samples
-        if sbs:
+        if args.virtual_outlier and not warmup:
             with torch.no_grad():
                 negative_feature = synthesize_OOD(
                     ewm,
                     F.normalize(
                         encoded_feature.detach(),
                         dim=-1
-                    ) if normalize_ID else encoded_feature.detach(),
-                    near_OOD,
-                    resample,
+                    ) if args.normalize_ID else encoded_feature.detach(),
+                    args.near_region,
+                    args.resample,
                 )
                 
-                if not grad_head:
+                if not args.grad_head:
                     negative_features = F.normalize(
                         model.head(negative_feature),
                         dim=-1
                     )
 
-            if grad_head:
+            if args.grad_head:
                 negative_features = F.normalize(
                     model.head(negative_feature),
                     dim=-1

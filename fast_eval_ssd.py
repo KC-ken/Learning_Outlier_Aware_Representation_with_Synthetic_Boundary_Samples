@@ -17,6 +17,7 @@ from utils import (
     get_pr_sklearn,
     get_fpr,
     get_scores_one_cluster,
+    compute_dis,
 )
 import data
 
@@ -152,5 +153,8 @@ def fast_eval(
             auroc.append(_auroc)
             aupr.append(_aupr)
             print(f"In-data = {adataset}, OOD = {ood_name}, Clusters = {aclusters}, FPR95 = {_fpr95}, AUROC = {_auroc}, AUPR = {_aupr}")
+        
+        mean_dis, max_dis = compute_dis(features_train)
+        print("################## mean and max distance: ", mean_dis, max_dis)
 
-    return fpr95, auroc, aupr
+    return fpr95, auroc, aupr, mean_dis, max_dis

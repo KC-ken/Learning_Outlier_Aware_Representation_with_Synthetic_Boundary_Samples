@@ -33,7 +33,7 @@ def evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, n
     prec1, _ = val(model, device, test_loader, criterion, args, epoch)
     
     # compute OOD detection performance
-    fpr95, auroc, aupr = fast_eval(
+    fpr95, auroc, aupr, mean_dis, max_dis = fast_eval(
         model=model,
         train_loader=in_train_loader,
         test_loader=in_test_loader,
@@ -42,7 +42,7 @@ def evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, n
         atraining_mode=args.training_mode
     )
 
-    return prec1, fpr95, auroc, aupr
+    return prec1, fpr95, auroc, aupr, mean_dis, max_dis
 
 def main():
     parser = argparse.ArgumentParser(description="SSD evaluation")
@@ -186,8 +186,8 @@ def main():
     )
 
     # ood dataset for fast_eval
-    # eval_ds = ["cifar10", "cifar100", "svhn", "texture", "blobs"]
-    eval_ds = ["cifar10", "cifar100"]
+    eval_ds = ["cifar10", "cifar100", "svhn", "texture", "blobs"]
+    # eval_ds = ["cifar10", "cifar100"]
     eval_ds.remove(args.dataset)
 
     # OOD loader
@@ -269,18 +269,19 @@ def main():
                 warmup_lr_scheduler,
                 epoch,
                 args,
-                args.virtual_outlier & ~args.default_warmup,
-                args.resample,
-                args.near_region,
-                args.normalize_ID,
-                args.grad_head,
+                args.default_warmup,
+                # args.virtual_outlier & ~args.default_warmup,
+                # args.resample,
+                # args.near_region,
+                # args.normalize_ID,
+                # args.grad_head,
                 ewm,
             )
 
             ## eval
-            prec1, fpr95, auroc, aupr = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion_warm, args, epoch)
+            prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion_warm, args, epoch)
             
-            wandb.log({"validation accuracy": prec1}, step=num_steps)
+            wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis}, step=num_steps)
 
             for i, (ds, _) in enumerate(OODs):
                 wandb.log({f"{ds}_fpr95": fpr95[i], f"{ds}_auroc": auroc[i], f"{ds}_aupr": aupr[i]}, step=num_steps)
@@ -298,10 +299,19 @@ def main():
 
     for epoch in range(0, args.epochs):
         trainer(
-            model, device, train_loader, criterion, optimizer, lr_scheduler, epoch, args, args.virtual_outlier, args.resample, args.near_region, args.normalize_ID, args.grad_head, ewm
+            model,
+            device, 
+            train_loader, 
+            criterion, 
+            optimizer, 
+            lr_scheduler, 
+            epoch, 
+            args,
+            False, 
+            ewm,
         )
 
-        prec1, fpr95, auroc, aupr = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
+        prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
 
         # remember best accuracy and save checkpoint
         is_best = prec1 > best_prec1
@@ -333,7 +343,7 @@ def main():
             f"Epoch {epoch}, validation accuracy {prec1}, best_prec {best_prec1}"
         )
         
-        wandb.log({"validation accuracy": prec1}, step=num_steps)
+        wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis}, step=num_steps)
 
         for i, (ds, _) in enumerate(OODs):
             wandb.log({f"{ds}_fpr95": fpr95[i], f"{ds}_auroc": auroc[i], f"{ds}_aupr": aupr[i]}, step=num_steps)
