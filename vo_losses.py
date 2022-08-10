@@ -8,6 +8,7 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 import numpy as np
+import torch.nn.functional as F
 
 from utils import synthesize_OOD
 
@@ -28,6 +29,8 @@ class VOConLoss(nn.Module):
 
     def forward(self, features, labels=None, negative_features=None):
         device = torch.device("cuda") if features.is_cuda else torch.device("cpu")
+
+        features = F.normalize(features, dim=-1)
 
         if len(features.shape) < 3:
             raise ValueError(
@@ -82,6 +85,8 @@ class VOConLoss(nn.Module):
         exp_logits = (torch.exp(logits) * logits_mask).sum(1)
 
         if negative_features is not None:
+            negative_features = F.normalize(negative_features, dim=-1)
+            
             # compute negative logits
             negative_dot_contrast = torch.div(
                 torch.matmul(anchor_feature, negative_features.T), self.temperature

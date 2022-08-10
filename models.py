@@ -190,4 +190,4 @@ class SSLResNet(nn.Module):
         )
 
     def forward(self, x):
-        return F.normalize(self.head(self.encoder(x)), dim=-1)
+        return self.head(self.encoder(x))

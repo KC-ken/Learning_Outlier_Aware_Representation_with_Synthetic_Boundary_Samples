@@ -145,25 +145,16 @@ def ssl(
                 )
                 
                 if not args.grad_head:
-                    negative_features = F.normalize(
-                        model.head(negative_feature),
-                        dim=-1
-                    )
+                    negative_features = model.head(negative_feature)
 
             if args.grad_head:
-                negative_features = F.normalize(
-                    model.head(negative_feature),
-                    dim=-1
-                )   
+                negative_features = model.head(negative_feature)
             # print("negative_features size:", encoded_feature.size())
                     
         else:
             negative_features = None
 
-        features = F.normalize(
-            model.head(encoded_feature),
-            dim=-1
-        )
+        features = model.head(encoded_feature)
             
         f1, f2 = torch.split(features, [bsz, bsz], dim=0)
         features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
