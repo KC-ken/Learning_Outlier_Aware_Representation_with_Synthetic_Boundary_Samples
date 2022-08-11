@@ -84,6 +84,9 @@ class EWM(object):
         self.cov = None
         self.alpha = alpha
 
+        self.max_M_dis = 0
+        self.max_M_dis_one_epoch = 0
+
     def update_mean(self, mean_t):
         if self.mean is None:
             self.mean = mean_t
@@ -95,6 +98,20 @@ class EWM(object):
             self.cov = cov_t
 
         self.cov = self.alpha * cov_t + (1 - self.alpha) * self.cov
+
+    def update_boundary(self, max_M_dis):
+        self.max_M_dis = max(self.max_M_dis, max_M_dis)
+        self.max_M_dis_one_epoch = max(self.max_M_dis_one_epoch, max_M_dis)
+
+        return self.max_M_dis
+
+    def update_boundary_by_epoch(self):
+        # if the max M distance in this epoch is smaller than "max_M_dis", 
+        # then decrease "max_M_dis" to the maximum M dis of this eopch
+        self.max_M_dis = min(self.max_M_dis, self.max_M_dis_one_epoch)
+        self.max_M_dis_one_epoch = 0
+
+        return self.max_M_dis
 
 #### evaluation ####
 def accuracy(output, target, topk=(1,)):
@@ -384,7 +401,7 @@ def sliceloader(dataloader, norm_layer, k=1, copies=1, batch_size=128, size=32):
     return loader_k, loader_not_k
 
 
-def synthesize_OOD(ewm, feature, near_region, delta, resample):
+def synthesize_OOD(ewm, feature, near_region, delta, resample, lock_boundary):
     device = torch.device("cuda") if feature.is_cuda else torch.device("cpu")
 
     #------------------ outlier projection-----------------------------
@@ -415,9 +432,14 @@ def synthesize_OOD(ewm, feature, near_region, delta, resample):
         axis=-1,
     )
 
+    # update the boundary distance
+    boundary_dis = ewm.update_boundary(M_dis.max())
+    if not lock_boundary:
+        boundary_dis = M_dis.max()
+
     # Defined Near OOD region (todo set good nearood)
-    nearood_low = M_dis.max() * (1 + delta)
-    nearood_high = M_dis.max() * (1 + delta + near_region)
+    nearood_low = boundary_dis * (1 + delta)
+    nearood_high = boundary_dis * (1 + delta + near_region)
 
     # sample z and compute the Mahalanobis distance of z
     if resample:
