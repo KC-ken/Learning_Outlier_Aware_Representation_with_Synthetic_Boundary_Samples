@@ -95,18 +95,19 @@ def get_scores_multi_cluster(ftrain, ftest, food, ypred):
     return din, dood
 
 
-def draw_histogram(dtest, dood):
+def draw_histogram(dtest, dood, args, oodset):
     # freq, bins = np.histogram(dtest, bins=100)
 
     # ---histogram---
-    plt.hist(dtest, alpha=0.5, bins=350, range=[0, 7000], color="g", label="ID")
-    plt.hist(dood, alpha=0.5, bins=350, range=[0, 7000], color="r", label="OOD")
+    plt.clf()
+    plt.hist(dtest, alpha=0.5, bins=350, range=[0, args.hist_range], color="g", label="ID")
+    plt.hist(dood, alpha=0.5, bins=350, range=[0, args.hist_range], color="r", label="OOD")
     plt.gca().set(title='Frequency Histogram', ylabel='Frequency', xlabel="M Distance")
-    plt.xlim(-10, 7000)
+    plt.xlim(-10, args.hist_range)
     plt.ylim(-10, 500)
     plt.legend()
     # plt.show()
-    plt.savefig("./compare_ckp/temp.png")
+    plt.savefig(f"{args.ckpt}/vs_{oodset}.png")
 
     # ---density---
     # sns.set_style("white")
@@ -120,7 +121,7 @@ def draw_histogram(dtest, dood):
     # plt.legend()
     # plt.show()
 
-def get_eval_results(ftrain, ftest, food, labelstrain, args):
+def get_eval_results(ftrain, ftest, food, labelstrain, args, oodset):
     """
     None.
     """
@@ -137,7 +138,7 @@ def get_eval_results(ftrain, ftest, food, labelstrain, args):
 
     dtest, dood = get_scores(ftrain, ftest, food)
 
-    draw_histogram(dtest, dood)
+    draw_histogram(dtest, dood, args, oodset)
     fpr95 = get_fpr(dtest, dood)
     auroc, aupr = get_roc_sklearn(dtest, dood), get_pr_sklearn(dtest, dood)
     return fpr95, auroc, aupr
@@ -146,29 +147,28 @@ def get_eval_results(ftrain, ftest, food, labelstrain, args):
 def main():
     parser = argparse.ArgumentParser(description="SSD evaluation")
 
-    parser.add_argument("--exp-name", type=str, default="temp_eval_ssd")
     parser.add_argument(
         "--training-mode", type=str, choices=("SimCLR", "SupCon", "SupCE")
     )
-    parser.add_argument("--results-dir", type=str, default="./eval_results")
+    parser.add_argument("--arch", type=str, default="resnet18")
+    parser.add_argument("--dataset", type=str, default="cifar10")
+    # parser.add_argument("--OOD", type=str, default="cifar100")
+    parser.add_argument("--normalize", action="store_true", default=False)
+    parser.add_argument("--ckpt", type=str, help="checkpoint path")
+    parser.add_argument("--hist-range", type=int, default=7000)
 
-    parser.add_argument("--arch", type=str, default="resnet50")
     parser.add_argument("--classes", type=int, default=10)
     parser.add_argument("--clusters", type=int, default=1)
-
-    parser.add_argument("--dataset", type=str, default="cifar10")
     parser.add_argument(
         "--data-dir", type=str, default="./datasets/"
     )
     parser.add_argument(
         "--data-mode", type=str, choices=("org", "base", "ssl"), default="base"
     )
-    parser.add_argument("--normalize", action="store_true", default=False)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--size", type=int, default=32)
 
     parser.add_argument("--gpu", type=str, default="0")
-    parser.add_argument("--ckpt", type=str, help="checkpoint path")
     parser.add_argument("--seed", type=int, default=12345)
 
     args = parser.parse_args()
@@ -176,15 +176,8 @@ def main():
 
     assert args.ckpt, "Must provide a checkpint for evaluation"
 
-    if not os.path.isdir(args.results_dir):
-        os.mkdir(args.results_dir)
+    ckpt_name = "checkpoint_500.pth.tar"
 
-    results_file = os.path.join(args.results_dir, args.exp_name + "_ssd.txt")
-
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
-    logger = logging.getLogger()
-    logger.addHandler(logging.FileHandler(results_file, "a"))
-    logger.info(args)
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
@@ -201,7 +194,7 @@ def main():
     # model = model.to(device)
 
     # load checkpoint
-    ckpt_dict = torch.load(args.ckpt, map_location="cpu")
+    ckpt_dict = torch.load(f"{args.ckpt}/{ckpt_name}", map_location="cpu")
     if "model" in ckpt_dict.keys():
         ckpt_dict = ckpt_dict["model"]
     if "state_dict" in ckpt_dict.keys():
@@ -223,8 +216,7 @@ def main():
     features_test, _ = get_features(model.encoder, test_loader)
     print("In-distribution features shape: ", features_train.shape, features_test.shape)
 
-    # ds = ["cifar10", "cifar100", "svhn", "texture", "blobs"]
-    ds = ["cifar10", "cifar100"]
+    ds = ["cifar10", "cifar100", "svhn", "texture", "blobs"]
     ds.remove(args.dataset)
 
     for d in ds:
@@ -245,9 +237,10 @@ def main():
             np.copy(features_ood),
             np.copy(labels_train),
             args,
+            d,
         )
 
-        logger.info(
+        print(
             f"In-data = {args.dataset}, OOD = {d}, Clusters = {args.clusters}, FPR95 = {fpr95}, AUROC = {auroc}, AUPR = {aupr}"
         )
 
