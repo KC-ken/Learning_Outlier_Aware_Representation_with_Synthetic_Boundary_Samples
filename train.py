@@ -99,6 +99,7 @@ def main():
     parser.add_argument("--resample", action="store_true", default=False)
     parser.add_argument("--normalize-ID", action="store_true", default=False)
     parser.add_argument("--grad-head", action="store_true", default=False)
+    parser.add_argument("--lock-boundary", action="store_true", default=False)
 
     args = parser.parse_args()
     device = "cuda:0"
@@ -279,10 +280,13 @@ def main():
                 ewm,
             )
 
+            # update boundary
+            max_M_dis = ewm.update_boundary_by_epoch()
+
             ## eval
             prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion_warm, args, epoch)
             
-            wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis}, step=num_steps)
+            wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis, "max Mahalanobis distance": max_M_dis}, step=num_steps)
 
             for i, (ds, _) in enumerate(OODs):
                 wandb.log({f"{ds}_fpr95": fpr95[i], f"{ds}_auroc": auroc[i], f"{ds}_aupr": aupr[i]}, step=num_steps)
@@ -312,6 +316,10 @@ def main():
             ewm,
         )
 
+        # update boundary
+        max_M_dis = ewm.update_boundary_by_epoch()
+
+        # eval
         prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
 
         # remember best accuracy and save checkpoint
@@ -344,7 +352,7 @@ def main():
             f"Epoch {epoch}, validation accuracy {prec1}, best_prec {best_prec1}"
         )
         
-        wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis}, step=num_steps)
+        wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis, "max Mahalanobis distance": max_M_dis}, step=num_steps)
 
         for i, (ds, _) in enumerate(OODs):
             wandb.log({f"{ds}_fpr95": fpr95[i], f"{ds}_auroc": auroc[i], f"{ds}_aupr": aupr[i]}, step=num_steps)

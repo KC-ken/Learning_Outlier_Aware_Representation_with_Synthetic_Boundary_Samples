@@ -17,10 +17,9 @@ class VOConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
     It also supports the unsupervised contrastive loss in SimCLR"""
 
-    def __init__(self, temperature=0.07, vos_mode="Cont", contrast_mode="vos", base_temperature=0.07, lamb = 1):
+    def __init__(self, temperature=0.07, vos_mode="Cont", base_temperature=0.07, lamb = 1):
         super(VOConLoss, self).__init__()
         self.temperature = temperature
-        self.contrast_mode = contrast_mode
         self.base_temperature = base_temperature
         self.vos_mode = vos_mode
         self.lamb = lamb
@@ -50,17 +49,8 @@ class VOConLoss(nn.Module):
         # print("fs: ", features.size())
         # print("con size: ", contrast_feature.size())
         
-        if self.contrast_mode == "one":
-            anchor_feature = features[:, 0]
-            anchor_count = 1
-        elif self.contrast_mode == "all":
-            anchor_feature = contrast_feature
-            anchor_count = contrast_count
-        elif self.contrast_mode == "vos":
-            anchor_feature = contrast_feature
-            anchor_count = contrast_count
-        else:
-            raise ValueError("Unknown mode: {}".format(self.contrast_mode))
+        anchor_feature = contrast_feature
+        anchor_count = contrast_count
 
         # tile mask
         mask = mask.repeat(anchor_count, contrast_count)

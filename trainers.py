@@ -142,6 +142,7 @@ def ssl(
                     args.near_region,
                     args.delta,
                     args.resample,
+                    args.lock_boundary,
                 )
                 
                 if not args.grad_head:
