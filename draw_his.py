@@ -97,11 +97,11 @@ def get_scores_multi_cluster(ftrain, ftest, food, ypred):
 
 def draw_histogram(dtest, dood, args, oodset):
     # freq, bins = np.histogram(dtest, bins=100)
-
+    bins_num = 350 #args.hist_range // 200
     # ---histogram---
     plt.clf()
-    plt.hist(dtest, alpha=0.5, bins=350, range=[0, args.hist_range], color="g", label="ID")
-    plt.hist(dood, alpha=0.5, bins=350, range=[0, args.hist_range], color="r", label="OOD")
+    plt.hist(dtest, alpha=0.5, bins=bins_num, range=[0, args.hist_range], color="g", label="ID")
+    plt.hist(dood, alpha=0.5, bins=bins_num, range=[0, args.hist_range], color="r", label="OOD")
     plt.gca().set(title='Frequency Histogram', ylabel='Frequency', xlabel="M Distance")
     plt.xlim(-10, args.hist_range)
     plt.ylim(-10, 500)
@@ -178,6 +178,14 @@ def main():
 
     ckpt_name = "checkpoint_500.pth.tar"
 
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    logger = logging.getLogger("my-logger")
+    logger.addHandler(
+        logging.FileHandler(
+            os.path.join(args.ckpt, "result.txt"), "w")
+        )
+    logger.propagate = False
+    logger.info(args)
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
@@ -241,6 +249,10 @@ def main():
         )
 
         print(
+            f"In-data = {args.dataset}, OOD = {d}, Clusters = {args.clusters}, FPR95 = {fpr95}, AUROC = {auroc}, AUPR = {aupr}"
+        )
+
+        logger.info(
             f"In-data = {args.dataset}, OOD = {d}, Clusters = {args.clusters}, FPR95 = {fpr95}, AUROC = {auroc}, AUPR = {aupr}"
         )
 
