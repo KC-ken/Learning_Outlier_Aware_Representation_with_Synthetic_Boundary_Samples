@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time
-from utils import AverageMeter, ProgressMeter, accuracy, synthesize_OOD
+from utils import AverageMeter, ProgressMeter, accuracy, synthesize_OOD, synthesize_OOD_Sup
 
 
 def supervised(
@@ -133,17 +133,30 @@ def ssl(
         # synthesize boundary samples
         if args.virtual_outlier and not warmup:
             with torch.no_grad():
-                negative_feature = synthesize_OOD(
-                    ewm,
-                    F.normalize(
-                        encoded_feature.detach(),
-                        dim=-1
-                    ) if args.normalize_ID else encoded_feature.detach(),
-                    args.near_region,
-                    args.delta,
-                    args.resample,
-                    args.lock_boundary,
-                )
+                if args.training_mode == "SupCon":
+                    negative_feature = synthesize_OOD_Sup(
+                        ewm,
+                        F.normalize(
+                            encoded_feature.detach(),
+                            dim=-1
+                        ) if args.normalize_ID else encoded_feature.detach(),
+                        target,
+                        args,
+                    )
+                elif args.training_mode == "SimCLR":
+                    negative_feature = synthesize_OOD(
+                        ewm,
+                        F.normalize(
+                            encoded_feature.detach(),
+                            dim=-1
+                        ) if args.normalize_ID else encoded_feature.detach(),
+                        args.near_region,
+                        args.delta,
+                        args.resample,
+                        args.lock_boundary,
+                    )
+                else:
+                    raise ValueError("training mode not supported")
                 
                 if not args.grad_head:
                     negative_features = model.head(negative_feature)

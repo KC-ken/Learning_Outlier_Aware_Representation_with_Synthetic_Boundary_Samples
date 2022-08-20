@@ -41,7 +41,13 @@ class VOConLoss(nn.Module):
 
         batch_size = features.shape[0]
 
-        mask = torch.eye(batch_size, dtype=torch.float32).to(device)
+        if labels is None:
+            class_mask = torch.eye(batch_size, dtype=torch.float32).to(device)
+        else:
+            labels = labels.contiguous().view(-1, 1)
+            if labels.shape[0] != batch_size:
+                raise ValueError("Num of labels does not match num of features")
+            class_mask = torch.eq(labels, labels.T).float().to(device)
 
         contrast_count = features.shape[1]
         contrast_feature = torch.cat(torch.unbind(features, dim=1), dim=0)
@@ -53,15 +59,15 @@ class VOConLoss(nn.Module):
         anchor_count = contrast_count
 
         # tile mask
-        mask = mask.repeat(anchor_count, contrast_count)
+        class_mask = class_mask.repeat(anchor_count, contrast_count)
         # mask-out self-contrast cases
         logits_mask = torch.scatter(
-            torch.ones_like(mask),
+            torch.ones_like(class_mask),
             1,
             torch.arange(batch_size * anchor_count).view(-1, 1).to(device),
             0,
         )
-        mask = mask * logits_mask
+        mask = class_mask * logits_mask
 
         # compute logits
         anchor_dot_contrast = torch.div(
@@ -71,7 +77,7 @@ class VOConLoss(nn.Module):
         logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
         logits = anchor_dot_contrast - logits_max.detach()
 
-        log_prob = (mask * logits).sum(1)
+        log_prob = (mask * logits).sum(1) / mask.sum(1)
         exp_logits = (torch.exp(logits) * logits_mask).sum(1)
 
         if negative_features is not None:
@@ -86,12 +92,13 @@ class VOConLoss(nn.Module):
             # n_logits_max, _ = torch.max(negative_dot_contrast, dim=1, keepdim=True)
             n_logits = negative_dot_contrast - logits_max.detach()
             
-            if self.vos_mode == "ContOne":
-                n_exp_logits = (torch.exp(n_logits) * (1 - logits_mask)).sum(1)
-            else:
-                n_exp_logits = torch.exp(n_logits).sum(1)
+            # if self.vos_mode == "ContOne":
+            #     n_exp_logits = (torch.exp(n_logits) * (1 - logits_mask)).sum(1)
             # else:
-            #     n_exp_logits = 0
+            if labels is None:
+                n_exp_logits = torch.exp(n_logits).sum(1)
+            else:
+                n_exp_logits = (torch.exp(n_logits) * class_mask).sum(1)
             #------------------------------------------------------------------
 
             # compute log_prob = - L_cont

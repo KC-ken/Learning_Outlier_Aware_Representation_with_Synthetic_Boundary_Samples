@@ -223,14 +223,6 @@ def main():
 
     if args.default_warmup:
         print("@@@@default warm up....")
-        # criterion_warm = (
-        #     SupConLoss(temperature=args.temperature).cuda()
-        #     if args.training_mode in ["SimCLR", "SupCon"]
-        #     else nn.CrossEntropyLoss().cuda()
-        # )
-        criterion_warm = criterion
-    else:
-        criterion_warm = criterion
 
     optimizer = torch.optim.SGD(
         model.parameters(),
@@ -247,7 +239,10 @@ def main():
     )
     val = knn if args.training_mode in ["SimCLR", "SupCon"] else baseeval
     
-    ewm = EWM(args.alpha)
+    if args.training_mode == "SimCLR":
+        ewm = EWM(args.alpha)
+    else:
+        ewm = [EWM(args.alpha) for i in range(args.num_classes)]
     
     num_steps = 0
 
@@ -266,7 +261,7 @@ def main():
                 model,
                 device,
                 train_loader,
-                criterion_warm,
+                criterion,
                 optimizer,
                 warmup_lr_scheduler,
                 epoch,
@@ -281,10 +276,15 @@ def main():
             )
 
             # update boundary
-            max_M_dis = ewm.update_boundary_by_epoch()
+            max_M_dis = 0
+            if args.training_mode == "SimCLR":
+                max_M_dis = ewm.update_boundary_by_epoch()
+            else:
+                for k in range(args.num_classes):
+                    max_M_dis = max(max_M_dis, ewm[k].update_boundary_by_epoch())
 
             ## eval
-            prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion_warm, args, epoch)
+            prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
             
             wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis, "max Mahalanobis distance": max_M_dis}, step=num_steps)
 
@@ -317,7 +317,12 @@ def main():
         )
 
         # update boundary
-        max_M_dis = ewm.update_boundary_by_epoch()
+        max_M_dis = 0
+        if args.training_mode == "SimCLR":
+            max_M_dis = ewm.update_boundary_by_epoch()
+        else:
+            for k in range(args.num_classes):
+                max_M_dis = max(max_M_dis, ewm[k].update_boundary_by_epoch())
 
         # eval
         prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)

@@ -471,3 +471,80 @@ def synthesize_OOD(ewm, feature, near_region, delta, resample, lock_boundary):
     negative_feature = torch.from_numpy(negative_feature).float().to(device)
 
     return negative_feature
+
+
+def synthesize_OOD_Sup(ewm, feature, labels, args): #near_region, delta, resample, lock_boundary):
+    device = torch.device("cuda") if feature.is_cuda else torch.device("cpu")
+    label = labels.repeat(2).detach().cpu().numpy().astype(int)
+    
+    #------------------ outlier projection-----------------------------
+    # compute mean and covariance
+    # contrast_feature: [bs*2, feature_dim], mean: [feature_dim], cov: [feature_dim, feature_dim]
+    con_f = feature.detach().cpu().numpy()
+    for i in range(args.num_classes):
+        index = np.where(label == i)[0]
+        class_f = con_f[index]
+        mu = np.mean(class_f, axis=0, keepdims=True)
+        ewm[i].update_mean(mu)
+
+    cov = np.cov(con_f.T, bias=True)
+    ewm[0].update_cov(cov)
+    
+    mu = np.array([ewm[i].mean for i in label]).reshape(con_f.shape)
+    cov = ewm[0].cov
+
+    # find maximum Mahalanobis distance
+    deviation = con_f - mu
+    M_dis = np.sum(
+        deviation * (
+            np.linalg.pinv(cov).dot(
+                deviation.T
+            )
+        ).T,
+        axis=-1,
+    )
+
+    # update the boundary distance
+    class_max_M = [0] * args.num_classes
+    if args.lock_boundary:
+        for i in range(label.shape[0]):
+            class_max_M[label[i]] = ewm[label[i]].update_boundary(M_dis[i])
+    else:
+        for i in range(label.shape[0]):
+            class_max_M[label[i]] = max(class_max_M[label[i]], M_dis[i])
+
+    # Defined Near OOD region (todo set good nearood)
+    nearood_low = np.array([class_max_M[i] * (1 + args.delta) for i in label])
+    nearood_high = np.array([class_max_M[i] * (1 + args.delta + args.near_region) for i in label])
+
+    # sample z and compute the Mahalanobis distance of z
+    if args.resample:
+        raise ValueError("resample for SupCon not complete yet")
+        # sampled_z = np.random.multivariate_normal(np.squeeze(mu), cov, con_f.shape[0])
+        # deviation = sampled_z - mu
+        # M_dis_z = np.sum(
+        #     deviation * (
+        #         np.linalg.pinv(cov).dot(
+        #             deviation.T
+        #         )
+        #     ).T,
+        #     axis=-1,
+        # )
+        # # sampled_z = torch.from_numpy(sampled_z).float().to(device)
+        # # print("M_dis_z: ", M_dis_z.size())
+
+    else:
+        M_dis_z = M_dis
+
+    # compute project scaler (c)
+    project_scalar = np.sqrt((np.random.uniform(nearood_low, nearood_high, M_dis.shape)) / M_dis_z)
+
+    # project contrast_feature onto near OOD region
+    negative_feature = np.expand_dims(project_scalar, 1) * deviation + mu
+    #@@@@@@@@@@@@@@@@@@@@@@test
+    # negative_feature /= np.linalg.norm(negative_feature, axis=-1, keepdims=True) + 1e-10
+    # negative_feature *= norm_f
+    #@@@@@@@@@@@@@@@@@@@@@@test
+    negative_feature = torch.from_numpy(negative_feature).float().to(device)
+
+    return negative_feature
