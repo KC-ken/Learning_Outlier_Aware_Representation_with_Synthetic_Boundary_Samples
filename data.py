@@ -168,17 +168,13 @@ def svhn(data_dir, batch_size, mode="base", normalize=True, norm_layer=None, siz
     elif mode == "base":
         transform_train = [transforms.Resize(size), transforms.ToTensor()]
     elif mode == "ssl":
-        transform_train = transforms.Compose(
-            [
-                transforms.RandomResizedCrop(size, scale=(0.2, 1.0)),
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomApply(
-                    [transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8
-                ),
-                transforms.RandomGrayscale(p=0.2),
-                transforms.ToTensor(),
-            ]
-        )
+        transform_train = [
+            transforms.RandomResizedCrop(size, scale=(0.2, 1.0)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.ToTensor(),
+        ]
     else:
         raise ValueError(f"{mode} mode not supported")
 
