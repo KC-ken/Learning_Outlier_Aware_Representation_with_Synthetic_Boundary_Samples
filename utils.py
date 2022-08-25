@@ -483,6 +483,9 @@ def synthesize_OOD_Sup(ewm, feature, labels, args): #near_region, delta, resampl
     con_f = feature.detach().cpu().numpy()
     for i in range(args.num_classes):
         index = np.where(label == i)[0]
+        if index.shape[0] == 0:
+            continue
+
         class_f = con_f[index]
         mu = np.mean(class_f, axis=0, keepdims=True)
         ewm[i].update_mean(mu)
