@@ -33,7 +33,7 @@ def evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, n
     prec1, _ = val(model, device, test_loader, criterion, args, epoch)
     
     # compute OOD detection performance
-    fpr95, auroc, aupr, mean_dis, max_dis = fast_eval(
+    fpr95, auroc, aupr, mtest, mood, mean_dis, max_dis = fast_eval(
         model=model,
         train_loader=in_train_loader,
         test_loader=in_test_loader,
@@ -42,7 +42,7 @@ def evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, n
         atraining_mode=args.training_mode
     )
 
-    return prec1, fpr95, auroc, aupr, mean_dis, max_dis
+    return prec1, fpr95, auroc, aupr, mtest, mood, mean_dis, max_dis
 
 def main():
     parser = argparse.ArgumentParser(description="SSD evaluation")
@@ -284,12 +284,26 @@ def main():
                     max_M_dis = max(max_M_dis, ewm[k].update_boundary_by_epoch())
 
             ## eval
-            prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
+            prec1, fpr95, auroc, aupr, mtest, mood, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
             
-            wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis, "max Mahalanobis distance": max_M_dis}, step=num_steps)
+            wandb.log(
+                {
+                    "validation accuracy": prec1, 
+                    "mean dis": mean_dis, 
+                    "max dis": max_dis, 
+                    "max Mahalanobis distance": max_M_dis,
+                    "ID_mean_dis": mtest
+                    }, step=num_steps)
 
             for i, (ds, _) in enumerate(OODs):
-                wandb.log({f"{ds}_fpr95": fpr95[i], f"{ds}_auroc": auroc[i], f"{ds}_aupr": aupr[i]}, step=num_steps)
+                wandb.log(
+                    {
+                        f"{ds}_fpr95": fpr95[i], 
+                        f"{ds}_auroc": auroc[i], 
+                        f"{ds}_aupr": aupr[i], 
+                        f"{ds}_mean_dis": mood[i],
+                        f"{ds}_diff_dis": mood[i]-mtest
+                        }, step=num_steps)
             
             num_steps += 1
 
@@ -325,7 +339,7 @@ def main():
                 max_M_dis = max(max_M_dis, ewm[k].update_boundary_by_epoch())
 
         # eval
-        prec1, fpr95, auroc, aupr, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
+        prec1, fpr95, auroc, aupr, mtest, mood, mean_dis, max_dis = evaluate(val, model, device, test_loader, in_train_loader, in_test_loader, norm_layer, OODs, criterion, args, epoch)
 
         # remember best accuracy and save checkpoint
         is_best = prec1 > best_prec1
@@ -356,11 +370,27 @@ def main():
         logger.info(
             f"Epoch {epoch}, validation accuracy {prec1}, best_prec {best_prec1}"
         )
-        
-        wandb.log({"validation accuracy": prec1, "mean dis": mean_dis, "max dis": max_dis, "max Mahalanobis distance": max_M_dis}, step=num_steps)
+
+        # logging on wandb
+        wandb.log(
+            {
+                "validation accuracy": prec1, 
+                "mean dis": mean_dis, 
+                "max dis": max_dis, 
+                "max Mahalanobis distance": max_M_dis,
+                "ID_mean_dis": mtest
+                }, step=num_steps)
 
         for i, (ds, _) in enumerate(OODs):
-            wandb.log({f"{ds}_fpr95": fpr95[i], f"{ds}_auroc": auroc[i], f"{ds}_aupr": aupr[i]}, step=num_steps)
+            wandb.log(
+                {
+                    f"{ds}_fpr95": fpr95[i], 
+                    f"{ds}_auroc": auroc[i], 
+                    f"{ds}_aupr": aupr[i], 
+                    f"{ds}_mean_dis": mood[i],
+                    f"{ds}_diff_dis": mood[i]-mtest
+                    }, step=num_steps)
+        
         # clone results to latest subdir (sync after every epoch)
         clone_results_to_latest_subdir(
             result_sub_dir, os.path.join(result_main_dir, "latest_exp")

@@ -23,15 +23,15 @@ import data
 
 # local utils for SSD evaluation
 def get_scores(ftrain, ftest, food, labelstrain, aclusters, atraining_mode):
-    if aclusters == 1:
-        return get_scores_one_cluster(ftrain, ftest, food)
-    else:
-        if atraining_mode == "SupCE":
-            print("Using data labels as cluster since model is cross-entropy")
-            ypred = labelstrain
-        else:
-            ypred = get_clusters(ftrain, aclusters)
-        return get_scores_multi_cluster(ftrain, ftest, food, ypred)
+    # if aclusters == 1:
+    return get_scores_one_cluster(ftrain, ftest, food)
+    # else:
+    #     if atraining_mode == "SupCE":
+    #         print("Using data labels as cluster since model is cross-entropy")
+    #         ypred = labelstrain
+    #     else:
+    #         ypred = get_clusters(ftrain, aclusters)
+    #     return get_scores_multi_cluster(ftrain, ftest, food, ypred)
 
 
 def get_clusters(ftrain, nclusters):
@@ -96,7 +96,7 @@ def get_eval_results(ftrain, ftest, food, labelstrain, aclusters, atraining_mode
 
     fpr95 = get_fpr(dtest, dood)
     auroc, aupr = get_roc_sklearn(dtest, dood), get_pr_sklearn(dtest, dood)
-    return fpr95, auroc, aupr
+    return fpr95, auroc, aupr, np.mean(dtest), np.mean(dood)
 
 
 def fast_eval(
@@ -135,13 +135,14 @@ def fast_eval(
         fpr95 = []
         auroc = []
         aupr = []
+        mood = []
 
         for ood_name, ood_loader in OODs:
 
             features_ood, _ = get_features(model.encoder, ood_loader)
             # print("Out-of-distribution features shape: ", features_ood.shape)
 
-            _fpr95, _auroc, _aupr = get_eval_results(
+            _fpr95, _auroc, _aupr, _mtest, _mood = get_eval_results(
                 np.copy(features_train),
                 np.copy(features_test),
                 np.copy(features_ood),
@@ -152,9 +153,10 @@ def fast_eval(
             fpr95.append(_fpr95)
             auroc.append(_auroc)
             aupr.append(_aupr)
+            mood.append(_mood)
             print(f"In-data = {adataset}, OOD = {ood_name}, Clusters = {aclusters}, FPR95 = {_fpr95}, AUROC = {_auroc}, AUPR = {_aupr}")
         
         mean_dis, max_dis = compute_dis(features_train)
         print("################## mean and max distance: ", mean_dis, max_dis)
 
-    return fpr95, auroc, aupr, mean_dis, max_dis
+    return fpr95, auroc, aupr, _mtest, mood, mean_dis, max_dis, 
