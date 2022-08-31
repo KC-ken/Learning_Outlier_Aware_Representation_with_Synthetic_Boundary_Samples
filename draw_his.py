@@ -110,16 +110,20 @@ def draw_histogram(dtest, dood, args, oodset):
     plt.savefig(f"{args.ckpt}/vs_{oodset}.png")
 
     # ---density---
-    # sns.set_style("white")
-    # kwargs = dict(hist_kws={'alpha':.5}, kde_kws={'linewidth':2})
+    # if oodset == "blobs":
+    #     plt.clf()
+    #     sns.set_style("white")
+    #     kwargs = dict(hist_kws={'alpha':.5}, kde_kws={'linewidth':2})
 
-    # plt.figure()#(figsize=(10,7), dpi= 80)
-    # sns.distplot(dtest, bins=int((dtest.max()-dtest.min())/20), hist=False, color="green", label="ID", **kwargs)
-    # sns.distplot(dood, bins=int((dtest.max()-dtest.min())/20), hist=False, color="red", label="OOD", **kwargs)
-    # plt.xlim(-10,7000)
-    # # plt.ylim(-10, 500)
-    # plt.legend()
-    # plt.show()
+    #     plt.figure()#(figsize=(10,7), dpi= 80)
+    #     # sns.distplot(dtest, bins=int(2000), kde=True, color="green", label="ID", **kwargs)
+    #     # sns.distplot(dood, bins=int(2000), kde=True, color="red", label="OOD", **kwargs)
+    #     sns.kdeplot(dtest, shade=True, color="red", label="ID")
+    #     sns.kdeplot(dood, shade=True, color="green", label="OOD")
+    #     # plt.xlim(-10,7000)
+    #     # plt.ylim(-10, 500)
+    #     # plt.legend()
+    #     plt.show()
 
 def get_eval_results(ftrain, ftest, food, labelstrain, args, oodset):
     """
