@@ -100,6 +100,7 @@ def main():
     parser.add_argument("--normalize-ID", action="store_true", default=False)
     parser.add_argument("--grad-head", action="store_true", default=False)
     parser.add_argument("--lock-boundary", action="store_true", default=False)
+    parser.add_argument("--stdepochs", type=int, default=0)
 
     args = parser.parse_args()
     device = "cuda:0"
@@ -267,11 +268,6 @@ def main():
                 epoch,
                 args,
                 args.default_warmup,
-                # args.virtual_outlier & ~args.default_warmup,
-                # args.resample,
-                # args.near_region,
-                # args.normalize_ID,
-                # args.grad_head,
                 ewm,
             )
 

@@ -131,7 +131,7 @@ def ssl(
 
         encoded_feature = model.encoder(images)
         # synthesize boundary samples
-        if args.virtual_outlier and not warmup:
+        if args.virtual_outlier and not warmup and epoch > args.stdepochs:
             with torch.no_grad():
                 if args.training_mode == "SupCon":
                     negative_feature = synthesize_OOD_Sup(
