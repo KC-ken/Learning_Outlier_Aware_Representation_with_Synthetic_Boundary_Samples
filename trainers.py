@@ -14,6 +14,8 @@ def supervised(
     lr_scheduler=None,
     epoch=0,
     args=None,
+    warmup=False,
+    ewm=None,
 ):
     print(
         " ->->->->->->->->->-> One epoch with supervised training <-<-<-<-<-<-<-<-<-<-"

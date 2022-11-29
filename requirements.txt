@@ -1,6 +1,8 @@
-scikit_image
+faiss-gpu
 numpy
+Pillow
+scikit-learn
 torch
+torchaudio
 torchvision
-faiss_gpu
-scikit_learn
+wandb

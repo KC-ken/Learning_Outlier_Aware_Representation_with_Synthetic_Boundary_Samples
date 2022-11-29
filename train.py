@@ -208,7 +208,10 @@ def main():
         OODs = ((d, ood_loader),) + OODs
 
     # criterion
-    if args.virtual_outlier:
+    if args.training_mode == "SupCE":
+        print("@@@@using cross entropy")
+        criterion = nn.CrossEntropyLoss().cuda()
+    elif args.virtual_outlier:
         print(f"@@@@using virtual outlier sampling with lambda {args.lamb}....")
         print(f"@@@@vos mode: {args.vos_mode}...")
         criterion = VOConLoss(temperature=args.temperature, lamb=args.lamb, vos_mode=args.vos_mode).cuda()
@@ -240,7 +243,9 @@ def main():
     )
     val = knn if args.training_mode in ["SimCLR", "SupCon"] else baseeval
     
-    if args.training_mode == "SimCLR":
+    if args.training_mode == "SupCE":
+        ewm = None
+    elif args.training_mode == "SimCLR":
         ewm = EWM(args.alpha)
     else:
         ewm = [EWM(args.alpha) for i in range(args.num_classes)]
@@ -275,7 +280,7 @@ def main():
             max_M_dis = 0
             if args.training_mode == "SimCLR":
                 max_M_dis = ewm.update_boundary_by_epoch()
-            else:
+            elif args.training_mode == "SupCon":
                 for k in range(args.num_classes):
                     max_M_dis = max(max_M_dis, ewm[k].update_boundary_by_epoch())
 
@@ -330,7 +335,7 @@ def main():
         max_M_dis = 0
         if args.training_mode == "SimCLR":
             max_M_dis = ewm.update_boundary_by_epoch()
-        else:
+        elif args.training_mode == "SupCon":
             for k in range(args.num_classes):
                 max_M_dis = max(max_M_dis, ewm[k].update_boundary_by_epoch())
 
