@@ -2,6 +2,12 @@
 
 This is the PyTorch implementation for Learning Outlier-Aware Representation with Synthetic Boundary Samples from National Yang Ming Chiao Tung University, Taiwan.
 
+## Environment Setup
+- Install the required packages
+```
+pip install -r requirements.txt
+```
+
 ## Run Training
 
 ```
@@ -17,6 +23,7 @@ CUDA_VISIBLE_DEVICES=0 python -u train.py --arch resnet18 --training-mode SimCLR
 ```
 python ./draw_his.py --training-mode SimCLR --normalize --ckpt ./compare_ckp/cifar100 --dataset cifar100 --classes 100
 ```
+- `--ckpt`: the folder contains the checkpoint name `checkpoint_500.pth.tar`
 
 ## Run Tsne
 
