@@ -20,7 +20,7 @@ from torchvision import datasets, transforms
 
 from models import SupResNet, SSLResNet
 import data
-import cls_trainers
+import cls_trainer as trainers
 from losses import SupConLoss
 from cls_vo_losses import VOConLoss
 from utils import *

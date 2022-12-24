@@ -11,9 +11,10 @@ import numpy as np
 import torch.nn.functional as F
 
 from utils import synthesize_OOD
+import time
 
 
-def get_fnmask(features):
+def get_fnmask(features, device):
     # feature: [bs*2, feature_dim]
     feature = features.detach().cpu().numpy()
 
@@ -21,31 +22,40 @@ def get_fnmask(features):
     m, s = np.mean(feature, axis=0, keepdims=True), np.std(feature, axis=0, keepdims=True)
     feature = (feature - m) / (s + 1e-10)
 
-    mask = np.eye(feature.shape[0]/2)
-    mask = np.tile(mask, (2, 2))
+    # print("feature_dim:", int(feature.shape[0]/2))
+    mask = np.eye(int(feature.shape[0]/2))
+    mask = np.tile(mask, (2, 2)).astype("int")
 
     # feature_matrix: [bs*2, bs*2, feature_dim]
-    feature_matrix = np.repeat(np.expand_dims(feature, 1), feature.shape[0], axis=0)
+    feature_matrix = np.repeat(np.expand_dims(feature, 0), feature.shape[0], axis=0)
     
     # mu: [bs*2, bs*2, feature_dim]
-    mu = np.repeat(np.expand_dims(feature, 1), 3, axis=1)
+    mu = np.repeat(np.expand_dims(feature, 1), feature.shape[0], axis=1)
     dev = feature_matrix - mu
 
+    # cov: [feature_dim, feature_dim]
     cov = np.cov(feature.T, bias=True)
 
-    dtest = np.sum(
-        (ftest - np.mean(ftrain, axis=0, keepdims=True))
-        * (
-            np.linalg.pinv(cov(ftrain)).dot(
-                (ftest - np.mean(ftrain, axis=0, keepdims=True)).T
-            )
-        ).T,
+    M_dis = np.sum(
+        dev * np.transpose(
+            np.matmul(
+                np.linalg.pinv(cov),
+                np.transpose(dev, (0, 2, 1))
+            ),  
+            (0, 2, 1)
+        ),
         axis=-1,
     )
 
-    fnmask = np.ones((feature.shape[0], feature.shape[0]))
+    M_dis[mask] = 1e10
 
-    return fnmask
+    ind_x = np.argmax(M_dis, axis=-1, keepdims=False)
+    ind_y = np.arange(ind_x.shape[0])
+
+    fnmask = np.ones((feature.shape[0], feature.shape[0]))
+    fnmask[ind_y, ind_x] = 0
+
+    return torch.tensor(fnmask).to(device)
 
 
 class VOConLoss(nn.Module):
@@ -61,7 +71,7 @@ class VOConLoss(nn.Module):
         # self.resample = resample
         # self.near_OOD = near_OOD
 
-    def forward(self, features, labels=None, negative_features=None):
+    def forward(self, features, labels=None, negative_features=None, fnm=False):
         device = torch.device("cuda") if features.is_cuda else torch.device("cpu")
 
         features = F.normalize(features, dim=-1)
@@ -102,6 +112,7 @@ class VOConLoss(nn.Module):
             torch.arange(batch_size * anchor_count).view(-1, 1).to(device),
             0,
         )
+
         mask = class_mask * logits_mask
 
         # compute logits
@@ -112,6 +123,14 @@ class VOConLoss(nn.Module):
         logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
         logits = anchor_dot_contrast - logits_max.detach()
 
+        fntime = time.time()
+        print("start getting mask")
+        # remove false negative
+        if fnm:
+            fnmask = get_fnmask(contrast_feature, device)
+            logits_mask *= fnmask
+        print("got mask:", time.time() - fntime)
+        
         log_prob = (mask * logits).sum(1) / mask.sum(1)
         exp_logits = (torch.exp(logits) * logits_mask).sum(1)
 

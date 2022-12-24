@@ -111,6 +111,9 @@ def ssl(
     model.train()
     end = time.time()
 
+    fnm = (epoch>=args.fnm_epoch)
+    print("false negative masking!!!")
+
     for i, data in enumerate(dataloader):
         images, target = data[0], data[1].to(device)
         images = torch.cat([images[0], images[1]], dim=0).to(device)
@@ -175,9 +178,9 @@ def ssl(
         f1, f2 = torch.split(features, [bsz, bsz], dim=0)
         features = torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1)
         if args.training_mode == "SupCon":
-            loss = criterion(features, target, negative_features=negative_features)
+            loss = criterion(features, target, negative_features=negative_features, fnm=fnm)
         elif args.training_mode == "SimCLR":
-            loss = criterion(features, negative_features=negative_features)
+            loss = criterion(features, negative_features=negative_features, fnm=fnm)
         else:
             raise ValueError("training mode not supported")
 
