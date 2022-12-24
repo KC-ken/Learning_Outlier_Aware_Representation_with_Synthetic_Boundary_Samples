@@ -20,9 +20,9 @@ from torchvision import datasets, transforms
 
 from models import SupResNet, SSLResNet
 import data
-import trainers
+import cls_trainers
 from losses import SupConLoss
-from vo_losses import VOConLoss
+from cls_vo_losses import VOConLoss
 from utils import *
 from fast_eval_ssd import fast_eval
 import wandb
@@ -102,7 +102,7 @@ def main():
     parser.add_argument("--lock-boundary", action="store_true", default=False)
     parser.add_argument("--stdepochs", type=int, default=0)
 
-    parser.add_argument("--fnmask", action="store_true", default=False)
+    parser.add_argument("--fnm-epoch", type=int, default=0)
 
     args = parser.parse_args()
     device = "cuda:0"
